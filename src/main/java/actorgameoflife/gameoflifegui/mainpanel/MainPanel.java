@@ -21,12 +21,12 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
     private int scrollX = 0;
     private int scrollY = 0;
 
-    public MainPanel(Dimension boardSize) {
+    public MainPanel(int boardRow, int boardColumn, int visualizedRow, int visualizedColumn) {
         this.setTitle("The Game of Life");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLayout(new BorderLayout());
 
-        boardPanel = new ScrollingBoard(boardSize);
+        boardPanel = new ScrollingBoard(boardRow, boardColumn, visualizedRow, visualizedColumn);
         this.getContentPane().add(boardPanel, BorderLayout.CENTER);
 
         JPanel commandPanel = new JPanel();
@@ -87,8 +87,6 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
     public class ScrollingBoard extends JPanel{
 
         private static final int PADDING = 10;
-        private int canvasRow = 100;
-        private int canvasColumn = 100;
         private boolean initialized = false;
 
         private JLabel boardDisplay = new JLabel();
@@ -97,10 +95,8 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
         private int canvasWidth, canvasHeight;
 
         private BufferedImage board;
-        private Dimension boardSize;
 
-        public ScrollingBoard(Dimension boardSize) {
-            this.boardSize = boardSize;
+        public ScrollingBoard(int boardRow, int boardColumn, int visualizedRow, int visualizedColumn) {
             horizontalScroller = new JScrollBar(JScrollBar.HORIZONTAL);
             horizontalScroller.addAdjustmentListener((e)-> {
                 scrollX = horizontalScroller.getValue();
@@ -118,6 +114,15 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
             this.add(horizontalScroller,BorderLayout.PAGE_END);
             this.add(verticalScroller,BorderLayout.LINE_END);
 
+            if(boardRow < visualizedRow) {
+                visualizedRow = boardRow;
+            }
+            if(boardColumn < visualizedColumn) {
+                visualizedColumn = boardColumn;
+            }
+            verticalScroller.setMaximum(boardRow - visualizedRow + PADDING);
+            horizontalScroller.setMaximum(boardColumn - visualizedColumn + PADDING);
+
             this.addComponentListener(new ComponentAdapter() {
                 @Override
                 public void componentResized(ComponentEvent e) {
@@ -125,7 +130,6 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
                     canvasWidth = e.getComponent().getWidth() - verticalScroller.getWidth();
                     canvasHeight = e.getComponent().getHeight() - horizontalScroller.getHeight();
                     if(board != null){
-                        updateScroller();
                         updateImage();
                     }
                 }
@@ -138,7 +142,6 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
                 initialized = true;
                 canvasWidth = this.getWidth() - verticalScroller.getWidth();
                 canvasHeight = this.getHeight() - horizontalScroller.getHeight();
-                updateScroller();
             }
             updateImage();
         }
@@ -150,16 +153,6 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
 
         }
 
-        private void updateScroller(){
-            if(boardSize.width < canvasRow) {
-                canvasRow = boardSize.width;
-            }
-            if(boardSize.height < canvasColumn) {
-                canvasColumn = boardSize.height;
-            }
-            verticalScroller.setMaximum(boardSize.width - canvasRow + PADDING);
-            horizontalScroller.setMaximum(boardSize.height - canvasColumn + PADDING);
-        }
     }
 
 

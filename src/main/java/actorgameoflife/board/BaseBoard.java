@@ -20,9 +20,9 @@ public class BaseBoard implements ManagedBoard {
         board.iterateCell((row, column) -> this.board[row][column] = board.isCellAlive(row, column));
     }
 
-    public BaseBoard(Board board, int x, int y, int width, int height){
+    public BaseBoard(Board board, int startingRow, int startingColumn, int width, int height){
         this(width, height);
-        board.iterateSubCell(x, y, x+width, y+height, (row, column) -> this.board[row][column] = board.isCellAlive(row, column));
+        board.iterateSubCell(startingRow, startingColumn, startingRow+width, startingColumn+height, (row, column) -> this.board[row][column] = board.isCellAlive(row, column));
     }
 
     @Override

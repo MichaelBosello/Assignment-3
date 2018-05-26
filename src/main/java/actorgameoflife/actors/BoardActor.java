@@ -40,7 +40,7 @@ public class BoardActor extends AbstractActor {
             if(currentBoard.isCellAlive(cellRow, cellColumn)){
                 currentLivingCell++;
             }
-            cell[cellRow][cellColumn] = getContext().actorOf(CellActor.props(currentBoard.isCellAlive(cellRow, cellColumn)), "Cell[" + cellRow + "][" + cellColumn +"]");
+            cell[cellRow][cellColumn] = getContext().actorOf(CellActor.props(currentBoard.isCellAlive(cellRow, cellColumn), cellRow, cellColumn, row, column), "Cell[" + cellRow + "][" + cellColumn +"]");
         });
 
     }

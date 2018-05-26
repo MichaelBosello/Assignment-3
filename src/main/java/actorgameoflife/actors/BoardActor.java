@@ -3,10 +3,7 @@ package actorgameoflife.actors;
 import actorgameoflife.board.Board;
 import actorgameoflife.board.BoardFactory;
 import actorgameoflife.board.ManagedBoard;
-import actorgameoflife.messages.BoardMessage;
-import actorgameoflife.messages.BoardRequestMessage;
-import actorgameoflife.messages.CellMessage;
-import actorgameoflife.messages.UpdateMessage;
+import actorgameoflife.messages.*;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 
@@ -59,15 +56,12 @@ public class BoardActor extends AbstractActor {
                 currentLivingCell), getSelf());
         currentX = msg.getX();
         currentY = msg.getY();
+    }).match(DimensionMessage.class, msg -> {
+        subWidth = msg.getWidth();
+        subHeight = msg.getHeight();
     }).build();
 
-    private Receive updating = receiveBuilder().match(BoardRequestMessage.class, msg -> {
-        getSender().tell(new BoardMessage(
-                BoardFactory.createSubBoard(currentBoard, msg.getX(), msg.getY(), subWidth, subHeight),
-                currentLivingCell), getSelf());
-        currentX = msg.getX();
-        currentY = msg.getY();
-    }).match(CellMessage.class, msg -> {
+    private Receive updating = base.orElse(receiveBuilder().match(CellMessage.class, msg -> {
         updateCount++;
         if(msg.isAlive()) {
             nextBoard.setAlive(msg.getX(),msg.getY());
@@ -87,17 +81,11 @@ public class BoardActor extends AbstractActor {
                     currentLivingCell), getSelf());
             getContext().unbecome();
         }
-    }).build();
+    }).build());
 
-    private Receive updated = receiveBuilder().match(BoardRequestMessage.class, msg -> {
-        getSender().tell(new BoardMessage(
-                BoardFactory.createSubBoard(currentBoard, msg.getX(), msg.getY(), subWidth, subHeight),
-                currentLivingCell), getSelf());
-        currentX = msg.getX();
-        currentY = msg.getY();
-    }).match(UpdateMessage.class, msg -> {
+    private Receive updated = base.orElse(receiveBuilder().match(UpdateMessage.class, msg -> {
         updateApplicant = getSender();
         cell[0][0].tell(new UpdateMessage(), getSelf());
         getContext().become(updating);
-    }).build();
+    }).build());
 }

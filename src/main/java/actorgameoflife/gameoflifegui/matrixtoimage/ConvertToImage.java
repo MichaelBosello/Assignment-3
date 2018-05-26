@@ -1,6 +1,6 @@
 package actorgameoflife.gameoflifegui.matrixtoimage;
 
-import gameoflife.board.Board;
+import actorgameoflife.board.Board;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

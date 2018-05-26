@@ -1,17 +1,19 @@
 package actorgameoflife.messages;
 
+import actorgameoflife.board.Board;
+
 import java.io.Serializable;
 
 public class BoardMessage implements Serializable {
 
-    protected boolean[][] board;
+    protected Board board;
 
-    public BoardMessage(boolean[][] board){
+    public BoardMessage(Board board){
         this.board = board;
     }
 
-    public boolean isCellAlive(int x, int y){
-        return board[x][y];
+    public Board getBoard(){
+        return board;
     }
 
 }

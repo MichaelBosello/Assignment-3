@@ -1,10 +1,7 @@
 package actorgameoflife.actors;
 
 import actorgameoflife.board.Board;
-import actorgameoflife.messages.BoardMessage;
-import actorgameoflife.messages.BoardRequestMessage;
-import actorgameoflife.messages.UpdateMessage;
-import actorgameoflife.messages.UpdateReadyMessage;
+import actorgameoflife.messages.*;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
@@ -14,11 +11,15 @@ import akka.actor.Props;
 
 public class ControllerActor extends AbstractActorWithStash {
 
-    ActorRef board;
-    ActorRef gui;
-    boolean run = false;
+    private int visualizedRow;
+    private int visualizedColumn;
+    private ActorRef board;
+    private ActorRef gui;
+    private boolean run = false;
 
     public ControllerActor(int row, int column, Board.BoardType startBoard, int visualizedRow, int visualizedColumn) {
+        this.visualizedRow = visualizedRow;
+        this.visualizedColumn = visualizedColumn;
         gui = getContext().actorOf(GUIActor.props(row, column, visualizedRow, visualizedColumn), "GUI");
         board = getContext().actorOf(BoardActor.props(row, column, startBoard), "Board");
     }
@@ -29,6 +30,7 @@ public class ControllerActor extends AbstractActorWithStash {
 
     @Override
     public void preStart() {
+        board.tell(new DimensionMessage(visualizedRow, visualizedColumn), getSelf());
         board.tell(new BoardRequestMessage(0, 0), getSelf());
     }
 

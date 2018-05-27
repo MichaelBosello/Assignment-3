@@ -13,6 +13,7 @@ import akka.actor.AbstractActor;
 import akka.actor.Props;
 
 import javax.swing.*;
+import java.awt.image.BufferedImage;
 import java.lang.reflect.InvocationTargetException;
 
 public class GUIActor extends AbstractActor {
@@ -59,8 +60,11 @@ public class GUIActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(BoardMessage.class, msg -> {
+            BufferedImage board = ConvertToImage.boardToImage(msg.getBoard());
+            //System.out.println(Thread.currentThread().getPriority());
             SwingUtilities.invokeLater( () -> {
-                gui.updateBoard(ConvertToImage.boardToImage(msg.getBoard()));
+                //System.out.println(Thread.currentThread().getPriority());
+                gui.updateBoard(board);
                 gui.updateLivingCellLabel(msg.getLivingCell());
             });
         }).build();

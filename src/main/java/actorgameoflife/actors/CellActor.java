@@ -4,7 +4,7 @@ import actorgameoflife.messages.CellMessage;
 import actorgameoflife.messages.UpdateCellMessage;
 import actorgameoflife.messages.UpdateMessage;
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 
 import java.util.LinkedList;
@@ -12,16 +12,16 @@ import java.util.List;
 
 public class CellActor extends AbstractActor {
 
-    private boolean currentStare;
+    private boolean currentState;
     private final int myX;
     private final int myY;
-    private List<ActorRef> neighborhood = new LinkedList<>();
+    private List<ActorSelection> neighborhood = new LinkedList<>();
     private int received = 0;
     private int neighborSum = 0;
     private boolean starterCell = false;
 
-    public CellActor(boolean currentStare, int myX, int myY, int boardRow, int boardColumn) {
-        this.currentStare = currentStare;
+    public CellActor(boolean currentState, int myX, int myY, int boardRow, int boardColumn) {
+        this.currentState = currentState;
         this.myX = myX;
         this.myY = myY;
 
@@ -34,7 +34,8 @@ public class CellActor extends AbstractActor {
 
         for(int nearRow = rowStart; nearRow < rowEnd; nearRow++){
             for(int nearColumn = columnStart; nearColumn < columnEnd; nearColumn++){
-                neighborhood.add(getContext().actorSelection("Cell[" + nearRow + "][" + nearColumn +"]").anchor());
+                if(nearRow != myX || nearColumn != myY)
+                    neighborhood.add(getContext().actorSelection("../Cell" + nearRow + ":" + nearColumn));
             }
         }
     }
@@ -48,39 +49,38 @@ public class CellActor extends AbstractActor {
         return receiveBuilder().match(UpdateMessage.class, msg -> {
             starterCell = true;
             neighborhood.forEach( neighbor -> {
-                neighbor.tell(new UpdateCellMessage(currentStare), getSelf());
+                neighbor.tell(new UpdateCellMessage(currentState), getSelf());
             });
         }).match(UpdateCellMessage.class, msg -> {
             if(received == 0 && ! starterCell){
                 neighborhood.forEach( neighbor -> {
-                    neighbor.tell(new UpdateCellMessage(currentStare), getSelf());
+                    neighbor.tell(new UpdateCellMessage(currentState), getSelf());
                 });
             }
-            neighborSum += msg.isAlive() ? 1 : 0;
 
+            neighborSum += msg.isAlive() ? 1 : 0;
             received++;
 
             if(received == neighborhood.size()){
                 received = 0;
 
-                if(currentStare){
-                    neighborSum--;
-                    if(neighborSum == 2){
-                        currentStare = true;
+                if(currentState){
+                    if(neighborSum == 2 || neighborSum == 3){
+                        currentState = true;
                     } else {
-                        currentStare = false;
+                        currentState = false;
                     }
                 } else {
                     if (neighborSum == 3) {
-                        currentStare = true;
+                        currentState = true;
                     } else {
-                        currentStare = false;
+                        currentState = false;
                     }
                 }
 
                 neighborSum = 0;
 
-                getContext().parent().tell(new CellMessage(currentStare, myX, myY), getSelf());
+                getContext().getParent().tell(new CellMessage(currentState, myX, myY), getSelf());
             }
 
         }).build();

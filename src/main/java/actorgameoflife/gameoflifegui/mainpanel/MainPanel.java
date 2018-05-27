@@ -48,7 +48,7 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
     @Override
     public void updateBoard(BufferedImage boardImage) {
         boardPanel.updateDisplayedBoard(boardImage);
-        notifyUpdated();
+        //notifyUpdated();
     }
 
     @Override

@@ -22,7 +22,9 @@ public class BaseBoard implements ManagedBoard {
 
     public BaseBoard(Board board, int startingRow, int startingColumn, int width, int height){
         this(width, height);
-        board.iterateSubCell(startingRow, startingColumn, startingRow+width, startingColumn+height, (row, column) -> this.board[row][column] = board.isCellAlive(row, column));
+        this.iterateCell((row, column) -> {
+            this.board[row][column] = board.isCellAlive(row + startingRow, column + startingColumn);
+        });
     }
 
     @Override

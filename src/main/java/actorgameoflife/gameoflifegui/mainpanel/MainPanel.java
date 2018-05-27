@@ -18,9 +18,6 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
     private ScrollingBoard boardPanel;
     private JLabel aliveCellLabel = new JLabel(LIVING_TEXT + "0");
 
-    private int scrollX = 0;
-    private int scrollY = 0;
-
     public MainPanel(int boardRow, int boardColumn, int visualizedRow, int visualizedColumn) {
         this.setTitle("The Game of Life");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -72,7 +69,13 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
 
     private void notifyUpdated(){
         for (final MainPanelObserver observer : this.guiObserver){
-            observer.boardUpdated(scrollX, scrollY);
+            observer.boardUpdated();
+        }
+    }
+
+    private void notifyScroll(int x, int y){
+        for (final MainPanelObserver observer : this.guiObserver){
+            observer.scrollEvent(x, y);
         }
     }
 
@@ -92,6 +95,8 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
         private JLabel boardDisplay = new JLabel();
         private JScrollBar horizontalScroller;
         private JScrollBar verticalScroller;
+        private int scrollX = 0;
+        private int scrollY = 0;
         private int canvasWidth, canvasHeight;
 
         private BufferedImage board;
@@ -100,13 +105,13 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
             horizontalScroller = new JScrollBar(JScrollBar.HORIZONTAL);
             horizontalScroller.addAdjustmentListener((e)-> {
                 scrollX = horizontalScroller.getValue();
-                notifyUpdated();
+                notifyScroll(scrollX, scrollY);
             });
             horizontalScroller.setMinimum (0);
             verticalScroller = new JScrollBar(JScrollBar.VERTICAL);
             verticalScroller.addAdjustmentListener((e)-> {
                 scrollY = verticalScroller.getValue();
-                notifyUpdated();
+                notifyScroll(scrollX, scrollY);
             });
             verticalScroller.setMinimum (0);
             this.setLayout(new BorderLayout());

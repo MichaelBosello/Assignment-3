@@ -6,5 +6,7 @@ public interface MainPanelObserver {
 
     void stopEvent();
 
-    void boardUpdated(int x, int y);
+    void boardUpdated();
+
+    void scrollEvent(int x, int y);
 }

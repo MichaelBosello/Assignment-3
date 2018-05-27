@@ -4,19 +4,19 @@ import java.io.Serializable;
 
 public class DimensionMessage implements Serializable {
 
-    private final int width;
-    private final int height;
+    private final int row;
+    private final int column;
 
-    public DimensionMessage(int width, int height) {
-        this.width = width;
-        this.height = height;
+    public DimensionMessage(int row, int column) {
+        this.row = row;
+        this.column = column;
     }
 
-    public int getWidth() {
-        return width;
+    public int getRow() {
+        return row;
     }
 
-    public int getHeight() {
-        return height;
+    public int getColumn() {
+        return column;
     }
 }

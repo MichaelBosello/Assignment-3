@@ -6,6 +6,7 @@ import actorgameoflife.board.ManagedBoard;
 import actorgameoflife.messages.*;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 
 public class BoardActor extends AbstractActor {
 
@@ -14,8 +15,8 @@ public class BoardActor extends AbstractActor {
     private ManagedBoard nextBoard;
     private int currentLivingCell = 0;
     private int nextLivingCell = 0;
-    private int subWidth = 0;
-    private int subHeight = 0;
+    private int subRow = 0;
+    private int subColumn = 0;
     private int currentX = 0;
     private int currentY = 0;
     private int updateCount = 0;
@@ -42,7 +43,10 @@ public class BoardActor extends AbstractActor {
             }
             cell[cellRow][cellColumn] = getContext().actorOf(CellActor.props(currentBoard.isCellAlive(cellRow, cellColumn), cellRow, cellColumn, row, column), "Cell[" + cellRow + "][" + cellColumn +"]");
         });
+    }
 
+    static Props props(int row, int column, Board.BoardType startBoard) {
+        return Props.create(BoardActor.class, () -> new BoardActor(row, column, startBoard));
     }
 
     @Override
@@ -52,13 +56,13 @@ public class BoardActor extends AbstractActor {
 
     private Receive base = receiveBuilder().match(BoardRequestMessage.class, msg -> {
         getSender().tell(new BoardMessage(
-                BoardFactory.createSubBoard(currentBoard, msg.getX(), msg.getY(), subWidth, subHeight),
+                BoardFactory.createSubBoard(currentBoard, msg.getX(), msg.getY(), subRow, subColumn),
                 currentLivingCell), getSelf());
         currentX = msg.getX();
         currentY = msg.getY();
     }).match(DimensionMessage.class, msg -> {
-        subWidth = msg.getWidth();
-        subHeight = msg.getHeight();
+        subRow = msg.getRow();
+        subColumn = msg.getColumn();
     }).build();
 
     private Receive updating = base.orElse(receiveBuilder().match(CellMessage.class, msg -> {
@@ -77,15 +81,15 @@ public class BoardActor extends AbstractActor {
             currentLivingCell = nextLivingCell;
             nextLivingCell = 0;
             updateApplicant.tell(new BoardMessage(
-                    BoardFactory.createSubBoard(currentBoard, currentX, currentY, subWidth, subHeight),
+                    BoardFactory.createSubBoard(currentBoard, currentX, currentY, subRow, subColumn),
                     currentLivingCell), getSelf());
             getContext().unbecome();
         }
     }).build());
 
-    private Receive updated = base.orElse(receiveBuilder().match(UpdateMessage.class, msg -> {
+    private Receive updated = base.orElse(receiveBuilder().match(UpdateProceedMessage.class, msg -> {
         updateApplicant = getSender();
-        cell[0][0].tell(new UpdateMessage(), getSelf());
+        cell[0][0].tell(new UpdateProceedMessage(), getSelf());
         getContext().become(updating);
     }).build());
 }

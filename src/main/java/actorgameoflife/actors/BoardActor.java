@@ -20,7 +20,6 @@ public class BoardActor extends AbstractActor {
     private int currentX = 0;
     private int currentY = 0;
     private int updateCount = 0;
-    private ActorRef updateApplicant;
 
     public BoardActor(int row, int column, Board.BoardType startBoard) {
         switch (startBoard){
@@ -50,8 +49,13 @@ public class BoardActor extends AbstractActor {
     }
 
     @Override
+    public void preStart() {
+        cell[0][0].tell(new UpdateMessage(), getSelf());
+    }
+
+    @Override
     public Receive createReceive() {
-        return updated;
+        return updating;
     }
 
     private Receive base = receiveBuilder().match(BoardRequestMessage.class, msg -> {
@@ -65,6 +69,20 @@ public class BoardActor extends AbstractActor {
         subColumn = msg.getColumn();
     }).build();
 
+    private Receive updated = base.orElse(receiveBuilder().match(UpdateMessage.class, msg -> {
+        updateCount = 0;
+        ManagedBoard tmp = currentBoard;
+        currentBoard = nextBoard;
+        nextBoard = tmp;
+        currentLivingCell = nextLivingCell;
+        nextLivingCell = 0;
+        getSender().tell(new BoardMessage(
+                BoardFactory.createSubBoard(currentBoard, currentX, currentY, subRow, subColumn),
+                currentLivingCell), getSelf());
+        cell[0][0].tell(new UpdateMessage(), getSelf());
+        getContext().unbecome();
+    }).build());
+
     private Receive updating = base.orElse(receiveBuilder().match(CellMessage.class, msg -> {
         updateCount++;
         if(msg.isAlive()) {
@@ -74,22 +92,8 @@ public class BoardActor extends AbstractActor {
             nextBoard.setDead(msg.getX(),msg.getY());
         }
         if(updateCount == (cell.length * cell[0].length)){
-            updateCount = 0;
-            ManagedBoard tmp = currentBoard;
-            currentBoard = nextBoard;
-            nextBoard = tmp;
-            currentLivingCell = nextLivingCell;
-            nextLivingCell = 0;
-            updateApplicant.tell(new BoardMessage(
-                    BoardFactory.createSubBoard(currentBoard, currentX, currentY, subRow, subColumn),
-                    currentLivingCell), getSelf());
-            getContext().unbecome();
+            getContext().getParent().tell(new UpdateReadyMessage(), getSelf());
+            getContext().become(updated);
         }
-    }).build());
-
-    private Receive updated = base.orElse(receiveBuilder().match(UpdateProceedMessage.class, msg -> {
-        updateApplicant = getSender();
-        cell[0][0].tell(new UpdateProceedMessage(), getSelf());
-        getContext().become(updating);
     }).build());
 }

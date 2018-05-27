@@ -2,7 +2,7 @@ package actorgameoflife.actors;
 
 import actorgameoflife.messages.CellMessage;
 import actorgameoflife.messages.UpdateCellMessage;
-import actorgameoflife.messages.UpdateProceedMessage;
+import actorgameoflife.messages.UpdateMessage;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -45,7 +45,7 @@ public class CellActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(UpdateProceedMessage.class, msg -> {
+        return receiveBuilder().match(UpdateMessage.class, msg -> {
             starterCell = true;
             neighborhood.forEach( neighbor -> {
                 neighbor.tell(new UpdateCellMessage(currentStare), getSelf());

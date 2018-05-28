@@ -48,7 +48,7 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
     @Override
     public void updateBoard(BufferedImage boardImage) {
         boardPanel.updateDisplayedBoard(boardImage);
-        //notifyUpdated();
+        notifyUpdated();
     }
 
     @Override
@@ -104,13 +104,13 @@ public class MainPanel extends JFrame implements GameOfLifeGUI {
         public ScrollingBoard(int boardRow, int boardColumn, int visualizedRow, int visualizedColumn) {
             horizontalScroller = new JScrollBar(JScrollBar.HORIZONTAL);
             horizontalScroller.addAdjustmentListener((e)-> {
-                scrollX = horizontalScroller.getValue();
+                scrollY = horizontalScroller.getValue();
                 notifyScroll(scrollX, scrollY);
             });
             horizontalScroller.setMinimum (0);
             verticalScroller = new JScrollBar(JScrollBar.VERTICAL);
             verticalScroller.addAdjustmentListener((e)-> {
-                scrollY = verticalScroller.getValue();
+                scrollX = verticalScroller.getValue();
                 notifyScroll(scrollX, scrollY);
             });
             verticalScroller.setMinimum (0);

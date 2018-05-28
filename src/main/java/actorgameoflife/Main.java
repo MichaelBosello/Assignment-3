@@ -14,7 +14,7 @@ public class Main {
     private final static int COLUMN = 1000;
     private final static int VIEWED_ROW = 80;
     private final static int VIEWED_COLUMN = 80;
-    private final static Board.BoardType BOARD_TYPE = Board.BoardType.LWSS;
+    private final static Board.BoardType BOARD_TYPE = Board.BoardType.GLIDER;
 
     public static void main(String[] args) {
         Config config = ConfigFactory.parseFile(new File("src/main/resources/gameoflife.conf"));

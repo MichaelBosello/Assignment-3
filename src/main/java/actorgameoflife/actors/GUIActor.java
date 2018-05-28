@@ -23,6 +23,7 @@ public class GUIActor extends AbstractActor {
     public GUIActor(int boardRow, int boardColumn, int visualizedRow, int visualizedColumn) {
         try {
             SwingUtilities.invokeAndWait( () -> {
+                Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
                 gui = new MainPanel(boardRow, boardColumn, visualizedRow, visualizedColumn);
                 gui.addObserver(new MainPanelObserver() {
                     @Override
@@ -37,7 +38,7 @@ public class GUIActor extends AbstractActor {
 
                     @Override
                     public void boardUpdated() {
-                        //getContext().parent().tell(new BoardUpdatedMessage(), getSelf());
+                        getContext().parent().tell(new BoardUpdatedMessage(), getSelf());
                     }
 
                     @Override
@@ -61,9 +62,7 @@ public class GUIActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder().match(BoardMessage.class, msg -> {
             BufferedImage board = ConvertToImage.boardToImage(msg.getBoard());
-            //System.out.println(Thread.currentThread().getPriority());
             SwingUtilities.invokeLater( () -> {
-                //System.out.println(Thread.currentThread().getPriority());
                 gui.updateBoard(board);
                 gui.updateLivingCellLabel(msg.getLivingCell());
             });

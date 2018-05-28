@@ -2,6 +2,7 @@ package actorgameoflife.actors;
 
 import actorgameoflife.board.Board;
 import actorgameoflife.messages.*;
+import actorgameoflife.messages.gui.BoardUpdatedMessage;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
@@ -16,6 +17,7 @@ public class ControllerActor extends AbstractActorWithStash {
     private ActorRef board;
     private ActorRef gui;
     private boolean run = false;
+    private boolean previusImageVisualized = true;
 
     public ControllerActor(int row, int column, Board.BoardType startBoard, int visualizedRow, int visualizedColumn) {
         this.visualizedRow = visualizedRow;
@@ -38,17 +40,25 @@ public class ControllerActor extends AbstractActorWithStash {
     public Receive createReceive() {
         return receiveBuilder().match(StartMessage.class, msg -> {
             run = true;
-            unstash();
+            unstashAll();
         }).match(StopMessage.class, msg -> {
             run = false;
         }).match(ScrollMessage.class, msg -> {
             board.tell(new BoardRequestMessage(msg.getX(), msg.getY()), getSelf());
         }).match(BoardMessage.class, msg -> {
-            gui.tell(msg, getSelf());
+            if(previusImageVisualized) {
+                gui.tell(msg, getSelf());
+                previusImageVisualized = false;
+            } else {
+                stash();
+            }
+        }).match(BoardUpdatedMessage.class, msg -> {
+            previusImageVisualized = true;
+            unstashAll();
         }).match(UpdateReadyMessage.class, msg -> {
-            if(run){
+            if (run) {
                 board.tell(new UpdateMessage(), getSelf());
-            }else{
+            } else {
                 stash();
             }
         }).build();

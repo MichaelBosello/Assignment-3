@@ -10,11 +10,11 @@ import java.io.File;
 
 public class Main {
 
-    private final static int ROW = 1000;
-    private final static int COLUMN = 1000;
-    private final static int VIEWED_ROW = 80;
-    private final static int VIEWED_COLUMN = 80;
-    private final static Board.BoardType BOARD_TYPE = Board.BoardType.GLIDER;
+    private final static int ROW = 100;
+    private final static int COLUMN = 100;
+    private final static int VIEWED_ROW = 20;
+    private final static int VIEWED_COLUMN = 20;
+    private final static Board.BoardType BOARD_TYPE = Board.BoardType.RANDOM;
 
     public static void main(String[] args) {
         Config config = ConfigFactory.parseFile(new File("src/main/resources/gameoflife.conf"));

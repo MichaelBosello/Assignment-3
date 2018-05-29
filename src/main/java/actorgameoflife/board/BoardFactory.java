@@ -30,8 +30,8 @@ public class BoardFactory {
         return new BaseBoard(board);
     }
 
-    public static Board createSubBoard(Board board, int startingRow, int startingColumn, int width, int height){
-        return new BaseBoard(board, startingRow, startingColumn, width, height);
+    public static Board createSubBoard(Board board, int startingRow, int startingColumn, int subRow, int subColumn){
+        return new BaseBoard(board, startingRow, startingColumn, subRow, subColumn);
     }
 
     public static Board createLWSS(ManagedBoard board, int row, int column){

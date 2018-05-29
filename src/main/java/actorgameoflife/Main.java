@@ -10,10 +10,10 @@ import java.io.File;
 
 public class Main {
 
-    private final static int ROW = 100;
-    private final static int COLUMN = 100;
-    private final static int VIEWED_ROW = 20;
-    private final static int VIEWED_COLUMN = 20;
+    private final static int ROW = 300;
+    private final static int COLUMN = 300;
+    private final static int VIEWED_ROW = 30;
+    private final static int VIEWED_COLUMN = 30;
     private final static Board.BoardType BOARD_TYPE = Board.BoardType.RANDOM;
 
     public static void main(String[] args) {

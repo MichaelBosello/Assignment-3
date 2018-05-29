@@ -17,14 +17,14 @@ public class ConvertToImage {
         return boardToImage(board,0,0, board.getRow(), board.getColumn());
     }
 
-    public static BufferedImage boardToImage(Board board, int x, int y, int width, int height){
-        int[] data = new int[width*height];
-        for(int row = 0; row < width; row++)
-            for(int column = 0; column < height; column++)
-                data[row*height + column] = board.isCellAlive(x + row,y + column) ? BLACK : WHITE;
+    public static BufferedImage boardToImage(Board board, int startRow, int startColumn, int finalRow, int finalColumn){
+        int[] data = new int[finalRow*finalColumn];
+        for(int row = 0; row < finalRow; row++)
+            for(int column = 0; column < finalColumn; column++)
+                data[row*finalColumn + column] = board.isCellAlive(startRow + row,startColumn + column) ? BLACK : WHITE;
 
-        WritableRaster raster = icm.createCompatibleWritableRaster(width, height);
-        raster.setPixels(0, 0, width, height, data);
+        WritableRaster raster = icm.createCompatibleWritableRaster(finalRow, finalColumn);
+        raster.setPixels(0, 0, finalRow, finalColumn, data);
         return new BufferedImage(icm, raster, false, null);
 
     }

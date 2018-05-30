@@ -13,46 +13,49 @@ import java.util.List;
 public class CellActor extends AbstractActor {
 
     private boolean currentState;
-    private final int myX;
-    private final int myY;
+    private final int myRow;
+    private final int myColumn;
     private List<ActorSelection> neighborhood = new LinkedList<>();
     private int received = 0;
     private int neighborSum = 0;
-    private boolean starterCell = false;
+    private boolean sent = false;
 
-    public CellActor(boolean currentState, int myX, int myY, int boardRow, int boardColumn) {
+    public CellActor(boolean currentState, int myRow, int myColumn, int boardRow, int boardColumn) {
         this.currentState = currentState;
-        this.myX = myX;
-        this.myY = myY;
+        this.myRow = myRow;
+        this.myColumn = myColumn;
 
-        int rowStart = myX > 0 ? (myX - 1) : 0;
-        int columnStart = myY > 0 ? (myY - 1) : 0;
-        int rowEnd = myX < boardRow - 1 ? (myX + 2) :
-                myX < boardRow ? (myX + 1) : boardRow;
-        int columnEnd = myY < boardColumn -1 ? (myY + 2) :
-                myY < boardColumn ? (myY + 1) : boardColumn;
+        int rowStart = myRow > 0 ? (myRow - 1) : 0;
+        int columnStart = myColumn > 0 ? (myColumn - 1) : 0;
+        int rowEnd = myRow < boardRow - 1 ? (myRow + 2) :
+                myRow < boardRow ? (myRow + 1) : boardRow;
+        int columnEnd = myColumn < boardColumn -1 ? (myColumn + 2) :
+                myColumn < boardColumn ? (myColumn + 1) : boardColumn;
 
         for(int nearRow = rowStart; nearRow < rowEnd; nearRow++){
             for(int nearColumn = columnStart; nearColumn < columnEnd; nearColumn++){
-                if(nearRow != myX || nearColumn != myY)
+                if(nearRow != myRow || nearColumn != myColumn)
                     neighborhood.add(getContext().actorSelection("../Cell" + nearRow + ":" + nearColumn));
             }
         }
     }
 
-    static Props props(Boolean state, int x, int y, int boardRow, int boardColumn) {
-        return Props.create(CellActor.class, () -> new CellActor(state, x, y, boardRow, boardColumn));
+    static Props props(Boolean state, int cellRow, int cellColumn, int boardRow, int boardColumn) {
+        return Props.create(CellActor.class, () -> new CellActor(state, cellRow, cellColumn, boardRow, boardColumn));
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(UpdateMessage.class, msg -> {
-            starterCell = true;
-            neighborhood.forEach( neighbor -> {
-                neighbor.tell(new UpdateCellMessage(currentState), getSelf());
-            });
+            if(!sent) {
+                sent = true;
+                neighborhood.forEach(neighbor -> {
+                    neighbor.tell(new UpdateCellMessage(currentState), getSelf());
+                });
+            }
         }).match(UpdateCellMessage.class, msg -> {
-            if(received == 0 && ! starterCell){
+            if(received == 0 && !sent){
+                sent = true;
                 neighborhood.forEach( neighbor -> {
                     neighbor.tell(new UpdateCellMessage(currentState), getSelf());
                 });
@@ -63,6 +66,7 @@ public class CellActor extends AbstractActor {
 
             if(received == neighborhood.size()){
                 received = 0;
+                sent = false;
 
                 if(currentState){
                     if(neighborSum == 2 || neighborSum == 3){
@@ -80,7 +84,7 @@ public class CellActor extends AbstractActor {
 
                 neighborSum = 0;
 
-                getContext().getParent().tell(new CellMessage(currentState, myX, myY), getSelf());
+                getContext().getParent().tell(new CellMessage(currentState, myRow, myColumn), getSelf());
             }
 
         }).build();

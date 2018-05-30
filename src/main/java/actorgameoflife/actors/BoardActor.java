@@ -88,10 +88,10 @@ public class BoardActor extends AbstractActor {
     private Receive updating = base.orElse(receiveBuilder().match(CellMessage.class, msg -> {
         updateCount++;
         if(msg.isAlive()) {
-            nextBoard.setAlive(msg.getX(),msg.getY());
+            nextBoard.setAlive(msg.getRow(),msg.getColumn());
             nextLivingCell++;
         }else{
-            nextBoard.setDead(msg.getX(),msg.getY());
+            nextBoard.setDead(msg.getRow(),msg.getColumn());
         }
         if(updateCount == (cell.length * cell[0].length)){
             getContext().getParent().tell(new UpdateReadyMessage(), getSelf());

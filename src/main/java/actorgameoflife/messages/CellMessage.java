@@ -4,24 +4,24 @@ import java.io.Serializable;
 
 public class CellMessage implements Serializable {
     private final boolean alive;
-    private final int x;
-    private final int y;
+    private final int row;
+    private final int column;
 
-    public CellMessage(boolean alive, int x, int y){
+    public CellMessage(boolean alive, int row, int column){
         this.alive = alive;
-        this.x = x;
-        this.y = y;
+        this.row = row;
+        this.column = column;
     }
 
     public boolean isAlive(){
         return alive;
     }
 
-    public int getX() {
-        return x;
+    public int getRow() {
+        return row;
     }
 
-    public int getY() {
-        return y;
+    public int getColumn() {
+        return column;
     }
 }

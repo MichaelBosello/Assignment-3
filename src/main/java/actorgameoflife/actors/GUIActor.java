@@ -28,6 +28,7 @@ public class GUIActor extends AbstractActor {
                 gui.addObserver(new MainPanelObserver() {
                     @Override
                     public void startEvent() {
+                        //These methods are thread safe
                         getContext().parent().tell(new StartMessage(), getSelf());
                     }
 

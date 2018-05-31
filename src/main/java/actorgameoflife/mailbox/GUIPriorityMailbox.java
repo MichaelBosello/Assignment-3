@@ -2,8 +2,7 @@ package actorgameoflife.mailbox;
 
 import actorgameoflife.messages.BoardMessage;
 import actorgameoflife.messages.BoardRequestMessage;
-import actorgameoflife.messages.DimensionMessage;
-import actorgameoflife.messages.gui.BoardUpdatedMessage;
+import actorgameoflife.messages.gui.BoardVisualizedMessage;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
@@ -25,8 +24,7 @@ public class GUIPriorityMailbox extends UnboundedStablePriorityMailbox {
                 else if (message instanceof ScrollMessage ||
                         message instanceof BoardMessage ||
                         message instanceof BoardRequestMessage ||
-                        message instanceof BoardUpdatedMessage ||
-                        message instanceof DimensionMessage) {
+                        message instanceof BoardVisualizedMessage) {
                     return 1;
                 } else {
                     return 2;

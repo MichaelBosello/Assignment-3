@@ -4,19 +4,31 @@ import java.io.Serializable;
 
 public class BoardRequestMessage implements Serializable {
 
-    private int x;
-    private int y;
+    private int startRow;
+    private int startColumn;
+    private int endRow;
+    private int endColumn;
 
-    public BoardRequestMessage(int x, int y) {
-        this.x = x;
-        this.y = y;
+    public BoardRequestMessage(int startRow, int startColumn, int endRow, int endColumn) {
+        this.startRow = startRow;
+        this.startColumn = startColumn;
+        this.endRow = endRow;
+        this.endColumn = endColumn;
     }
 
-    public int getX() {
-        return x;
+    public int getStartRow() {
+        return startRow;
     }
 
-    public int getY() {
-        return y;
+    public int getStartColumn() {
+        return startColumn;
+    }
+
+    public int getEndRow() {
+        return endRow;
+    }
+
+    public int getEndColumn() {
+        return endColumn;
     }
 }

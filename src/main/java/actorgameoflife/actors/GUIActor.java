@@ -5,7 +5,7 @@ import actorgameoflife.gameoflifegui.mainpanel.MainPanel;
 import actorgameoflife.gameoflifegui.mainpanel.MainPanelObserver;
 import actorgameoflife.gameoflifegui.matrixtoimage.ConvertToImage;
 import actorgameoflife.messages.BoardMessage;
-import actorgameoflife.messages.gui.BoardUpdatedMessage;
+import actorgameoflife.messages.gui.BoardVisualizedMessage;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
@@ -39,7 +39,7 @@ public class GUIActor extends AbstractActor {
 
                     @Override
                     public void boardUpdated() {
-                        getContext().parent().tell(new BoardUpdatedMessage(), getSelf());
+                        getContext().parent().tell(new BoardVisualizedMessage(), getSelf());
                     }
 
                     @Override

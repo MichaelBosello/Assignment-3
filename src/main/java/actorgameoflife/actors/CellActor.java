@@ -18,7 +18,6 @@ public class CellActor extends AbstractActor {
     private List<ActorSelection> neighborhood = new LinkedList<>();
     private int received = 0;
     private int neighborSum = 0;
-    private boolean sent = false;
 
     public CellActor(boolean currentState, int myRow, int myColumn, int boardRow, int boardColumn) {
         this.currentState = currentState;
@@ -44,49 +43,46 @@ public class CellActor extends AbstractActor {
         return Props.create(CellActor.class, () -> new CellActor(state, cellRow, cellColumn, boardRow, boardColumn));
     }
 
+    private Receive updating = receiveBuilder().match(UpdateCellMessage.class, this::processNeighborCell).build();
+
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(UpdateMessage.class, msg -> {
-            if(!sent) {
-                sent = true;
-                neighborhood.forEach(neighbor -> {
-                    neighbor.tell(new UpdateCellMessage(currentState), getSelf());
-                });
-            }
+            sendState();
+            getContext().become(updating);
         }).match(UpdateCellMessage.class, msg -> {
-            if(received == 0 && !sent){
-                sent = true;
-                neighborhood.forEach( neighbor -> {
-                    neighbor.tell(new UpdateCellMessage(currentState), getSelf());
-                });
-            }
-
-            neighborSum += msg.isAlive() ? 1 : 0;
-            received++;
-
-            if(received == neighborhood.size()){
-                received = 0;
-                sent = false;
-
-                if(currentState){
-                    if(neighborSum == 2 || neighborSum == 3){
-                        currentState = true;
-                    } else {
-                        currentState = false;
-                    }
-                } else {
-                    if (neighborSum == 3) {
-                        currentState = true;
-                    } else {
-                        currentState = false;
-                    }
-                }
-
-                neighborSum = 0;
-
-                getContext().getParent().tell(new CellMessage(currentState, myRow, myColumn), getSelf());
-            }
-
+            sendState();
+            processNeighborCell(msg);
+            getContext().become(updating);
         }).build();
+    }
+
+    private void sendState(){
+        neighborhood.forEach( neighbor -> {
+            neighbor.tell(new UpdateCellMessage(currentState), getSelf());
+        });
+    }
+
+    private void processNeighborCell(UpdateCellMessage msg){
+        neighborSum += msg.isAlive() ? 1 : 0;
+        received++;
+
+        if(received == neighborhood.size()){
+            received = 0;
+
+            if(currentState){
+                if(! (neighborSum == 2 || neighborSum == 3) ){
+                    currentState = false;
+                }
+            } else {
+                if (neighborSum == 3) {
+                    currentState = true;
+                }
+            }
+
+            neighborSum = 0;
+            getContext().getParent().tell(new CellMessage(currentState, myRow, myColumn), getSelf());
+            getContext().unbecome();
+        }
     }
 }

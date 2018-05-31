@@ -2,7 +2,7 @@ package actorgameoflife.actors;
 
 import actorgameoflife.board.Board;
 import actorgameoflife.messages.*;
-import actorgameoflife.messages.gui.BoardUpdatedMessage;
+import actorgameoflife.messages.gui.BoardVisualizedMessage;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
@@ -12,18 +12,20 @@ import akka.actor.Props;
 
 public class ControllerActor extends AbstractActorWithStash {
 
-    private int visualizedRow;
-    private int visualizedColumn;
     private ActorRef board;
     private ActorRef gui;
+    private int visualizedRow;
+    private int visualizedColumn;
+    private int currentX = 0;
+    private int currentY = 0;
     private boolean run = false;
-    private boolean previusImageVisualized = true;
+    private boolean previousImageVisualized = true;
 
     public ControllerActor(int row, int column, Board.BoardType startBoard, int visualizedRow, int visualizedColumn) {
         this.visualizedRow = visualizedRow;
         this.visualizedColumn = visualizedColumn;
-        gui = getContext().actorOf(GUIActor.props(row, column, visualizedRow, visualizedColumn), "GUI");
         board = getContext().actorOf(BoardActor.props(row, column, startBoard), "Board");
+        gui = getContext().actorOf(GUIActor.props(row, column, visualizedRow, visualizedColumn), "GUI");
     }
 
     public static Props props(int row, int column, Board.BoardType startBoard, int visualizedRow, int visualizedColumn) {
@@ -32,8 +34,7 @@ public class ControllerActor extends AbstractActorWithStash {
 
     @Override
     public void preStart() {
-        board.tell(new DimensionMessage(visualizedRow, visualizedColumn), getSelf());
-        board.tell(new BoardRequestMessage(0, 0), getSelf());
+        boardRequest();
     }
 
     @Override
@@ -44,23 +45,30 @@ public class ControllerActor extends AbstractActorWithStash {
         }).match(StopMessage.class, msg -> {
             run = false;
         }).match(ScrollMessage.class, msg -> {
-            board.tell(new BoardRequestMessage(msg.getX(), msg.getY()), getSelf());
+            currentX = msg.getX();
+            currentY = msg.getY();
+            boardRequest();
         }).match(BoardMessage.class, msg -> {
-            if(previusImageVisualized) {
+            if(previousImageVisualized) {
                 gui.tell(msg, getSelf());
-                previusImageVisualized = false;
+                previousImageVisualized = false;
             } else {
                 stash();
             }
-        }).match(BoardUpdatedMessage.class, msg -> {
-            previusImageVisualized = true;
+        }).match(BoardVisualizedMessage.class, msg -> {
+            previousImageVisualized = true;
             unstashAll();
         }).match(UpdateReadyMessage.class, msg -> {
-            if (run) {
-                board.tell(new UpdateMessage(), getSelf());
+            if (run && previousImageVisualized) {
+                board.tell(new UpdatePermitMessage(), getSelf());
+                boardRequest();
             } else {
                 stash();
             }
         }).build();
+    }
+
+    private void boardRequest(){
+        board.tell(new BoardRequestMessage(currentX, currentY, visualizedRow, visualizedColumn), getSelf());
     }
 }

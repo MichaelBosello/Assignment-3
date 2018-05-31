@@ -6,20 +6,23 @@ import actorgameoflife.messages.gui.BoardVisualizedMessage;
 import actorgameoflife.messages.gui.ScrollMessage;
 import actorgameoflife.messages.gui.StartMessage;
 import actorgameoflife.messages.gui.StopMessage;
+import actorgameoflife.utility.MillisecondStopWatch;
+import actorgameoflife.utility.StopWatch;
 import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public class ControllerActor extends AbstractActorWithStash {
 
-    private ActorRef board;
-    private ActorRef gui;
+    private final ActorRef board;
+    private final ActorRef gui;
     private int visualizedRow;
     private int visualizedColumn;
     private int currentX = 0;
     private int currentY = 0;
     private boolean run = false;
     private boolean previousImageVisualized = true;
+    private final StopWatch watch = new MillisecondStopWatch();
 
     public ControllerActor(int row, int column, Board.BoardType startBoard, int visualizedRow, int visualizedColumn) {
         this.visualizedRow = visualizedRow;
@@ -34,6 +37,7 @@ public class ControllerActor extends AbstractActorWithStash {
 
     @Override
     public void preStart() {
+        watch.start();
         boardRequest();
     }
 
@@ -58,6 +62,10 @@ public class ControllerActor extends AbstractActorWithStash {
         }).match(BoardVisualizedMessage.class, msg -> {
             previousImageVisualized = true;
             unstashAll();
+
+            watch.stop();
+            System.out.println("Time between frame (ms): " + watch.getTime());
+            watch.start();
         }).match(UpdateReadyMessage.class, msg -> {
             if (run && previousImageVisualized) {
                 board.tell(new UpdatePermitMessage(), getSelf());

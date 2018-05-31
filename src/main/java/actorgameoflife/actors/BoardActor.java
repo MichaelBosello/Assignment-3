@@ -4,6 +4,8 @@ import actorgameoflife.board.Board;
 import actorgameoflife.board.BoardFactory;
 import actorgameoflife.board.ManagedBoard;
 import actorgameoflife.messages.*;
+import actorgameoflife.utility.MillisecondStopWatch;
+import actorgameoflife.utility.StopWatch;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -16,6 +18,7 @@ public class BoardActor extends AbstractActor {
     private int currentLivingCell = 0;
     private int nextLivingCell = 0;
     private int updateCount = 0;
+    private final StopWatch watch = new MillisecondStopWatch();
 
     public BoardActor(int row, int column, Board.BoardType startBoard) {
         switch (startBoard){
@@ -80,10 +83,13 @@ public class BoardActor extends AbstractActor {
         if(updateCount == (cell.length * cell[0].length)){
             getContext().getParent().tell(new UpdateReadyMessage(), getSelf());
             getContext().become(updatePending);
+            watch.stop();
+            System.out.println("Board computation time (ms): " + watch.getTime());
         }
     }).build());
 
     private void update(){
+        watch.start();
         cell[0][0].tell(new UpdateMessage(), getSelf());
     }
 

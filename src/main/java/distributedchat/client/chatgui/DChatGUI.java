@@ -9,14 +9,20 @@ public class DChatGUI extends JFrame implements ChatGUI{
 
     private final Set<ChatObserver> guiObserver = new HashSet<>();
     private final JTextArea chat;
-    private final JTextField serverIP;
+    private final JTextField registryHost;
     private final JTextField message;
     private final JButton joinButton;
     private boolean joined = false;
 
     public DChatGUI() {
         this.setTitle("Distributed Chat");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                notifyLeave();
+            }
+        });
         this.setLayout(new BorderLayout());
 
         chat = new JTextArea();
@@ -25,16 +31,16 @@ public class DChatGUI extends JFrame implements ChatGUI{
         this.getContentPane().add(chatArea, BorderLayout.CENTER);
 
         JPanel connectionPanel = new JPanel();
-        connectionPanel.add(new JLabel("Group name server ip: "));
-        serverIP = new JTextField("127.0.0.1:2552");
-        connectionPanel.add(serverIP);
+        connectionPanel.add(new JLabel("Group registry IP:PORT -> "));
+        registryHost = new JTextField("127.0.0.1:2552");
+        connectionPanel.add(registryHost);
         joinButton = new JButton("Connect");
         joinButton.addActionListener( (e) -> {
             if(!joined) {
                 joinButton.setText("Connection");
                 joinButton.setEnabled(false);
-                serverIP.setEditable(false);
-                notifyJoin(serverIP.getText());
+                registryHost.setEditable(false);
+                notifyJoin(registryHost.getText());
             }else{
                 notifyLeave();
             }
@@ -73,7 +79,7 @@ public class DChatGUI extends JFrame implements ChatGUI{
         JOptionPane.showMessageDialog(null, error, "Connection error", JOptionPane.INFORMATION_MESSAGE);
         joinButton.setText("Connect");
         joinButton.setEnabled(true);
-        serverIP.setEditable(true);
+        registryHost.setEditable(true);
     }
 
     @Override
@@ -81,9 +87,9 @@ public class DChatGUI extends JFrame implements ChatGUI{
         this.guiObserver.add(observer);
     }
 
-    private void notifyJoin(String ip){
+    private void notifyJoin(String host){
         for (final ChatObserver observer : this.guiObserver){
-            observer.joinEvent(ip);
+            observer.joinEvent(host);
         }
     }
 

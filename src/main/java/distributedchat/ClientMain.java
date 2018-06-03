@@ -3,35 +3,13 @@ package distributedchat;
 import akka.actor.*;
 import akka.remote.RemoteScope;
 import distributedchat.client.ChatActor;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import distributedchat.utility.NetworkUtility;
 
 public class ClientMain {
 
-    private final static int BASE_PORT = 2553;
-
     public static void main(String[] args) {
-
-        String ip = "127.0.0.1";
-        try {
-            ip = InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-
-        int port = BASE_PORT;
-        boolean portFound = false;
-        while(!portFound) {
-            try (Socket clientSocket = new Socket(ip, port)) {
-                portFound = true;
-            } catch (IOException e) {
-                port++;
-            }
-        }
-
+        String ip = NetworkUtility.getLanOrLocal();
+        int port = NetworkUtility.findNextAviablePort(ip, NetworkUtility.CHAT_BASE_PORT);
 
         ActorSystem system = ActorSystem.create("chat");
         Address addr = new Address("akka.tcp", "chat", ip, port);

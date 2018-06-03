@@ -1,5 +1,7 @@
 package distributedchat.client.chatgui;
 
+import distributedchat.utility.NetworkUtility;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashSet;
@@ -32,7 +34,8 @@ public class DChatGUI extends JFrame implements ChatGUI{
 
         JPanel connectionPanel = new JPanel();
         connectionPanel.add(new JLabel("Group registry IP:PORT -> "));
-        registryHost = new JTextField("127.0.0.1:2552");
+        registryHost = new JTextField(NetworkUtility.ipPortConcat(
+                NetworkUtility.getLanOrLocal(), NetworkUtility.CHAT_SERVER_PORT));
         connectionPanel.add(registryHost);
         joinButton = new JButton("Connect");
         joinButton.addActionListener( (e) -> {

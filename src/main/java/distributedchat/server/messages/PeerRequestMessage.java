@@ -1,4 +1,6 @@
 package distributedchat.server.messages;
 
-public class PeerRequestMessage {
+import java.io.Serializable;
+
+public class PeerRequestMessage implements Serializable {
 }

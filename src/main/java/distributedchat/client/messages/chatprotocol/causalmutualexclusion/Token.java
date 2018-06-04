@@ -1,12 +1,13 @@
-package distributedchat.client.messages.chatprotocol;
+package distributedchat.client.messages.chatprotocol.causalmutualexclusion;
 
 import akka.actor.ActorRef;
 import javafx.util.Pair;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class Token {
+public class Token implements Serializable {
     private List<Pair<ActorRef, Integer>> waitingQueue;//Q
     private Map<ActorRef, Integer> lastCSExecution;//T
 

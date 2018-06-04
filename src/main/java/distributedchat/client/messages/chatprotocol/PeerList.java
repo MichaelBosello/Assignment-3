@@ -1,15 +1,15 @@
-package distributedchat.server.messages;
+package distributedchat.client.messages.chatprotocol;
 
 import akka.actor.ActorRef;
 
 import java.io.Serializable;
 import java.util.Set;
 
-public class PeerListMessage implements Serializable {
+public class PeerList implements Serializable {
 
     private final Set<ActorRef> peer;
 
-    public PeerListMessage(Set<ActorRef> peer) {
+    public PeerList(Set<ActorRef> peer) {
         this.peer = peer;
     }
 

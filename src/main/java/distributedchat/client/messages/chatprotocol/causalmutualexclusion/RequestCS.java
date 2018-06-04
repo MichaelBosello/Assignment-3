@@ -1,4 +1,4 @@
-package distributedchat.client.messages.chatprotocol;
+package distributedchat.client.messages.chatprotocol.causalmutualexclusion;
 
 import akka.actor.ActorRef;
 import javafx.util.Pair;

@@ -1,19 +1,19 @@
 package distributedchat.client.messages.chatprotocol.causalmutualexclusion;
 
 import akka.actor.ActorRef;
-import javafx.util.Pair;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.AbstractMap.SimpleEntry;
 
 public class RequestCS implements Serializable {
-    private List<Pair<ActorRef, Integer>> waitingQueue;
+    private List<SimpleEntry<ActorRef, Integer>> waitingQueue;
 
-    public RequestCS(List<Pair<ActorRef, Integer>> waitingQueue) {
+    public RequestCS(List<SimpleEntry<ActorRef, Integer>> waitingQueue) {
         this.waitingQueue = waitingQueue;
     }
 
-    public List<Pair<ActorRef, Integer>> getWaitingQueue() {
+    public List<SimpleEntry<ActorRef, Integer>> getWaitingQueue() {
         return waitingQueue;
     }
 }

@@ -1,7 +1,7 @@
 package distributedchat.client.chatgui;
 
 import akka.actor.AbstractActor;
-import distributedchat.client.messages.chatprotocol.NextMessage;
+import distributedchat.client.messages.chatprotocol.NextMessages;
 import distributedchat.client.messages.fromtogui.*;
 
 import javax.swing.*;
@@ -32,13 +32,16 @@ public class ChatGUIActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(NextMessage.class, msg -> {
-            SwingUtilities.invokeLater( () -> gui.newMessage(msg.getMessage()));
+        return receiveBuilder().match(NextMessages.class, msg -> {
+            SwingUtilities.invokeLater(() -> {
+                for (String message : msg.getMessage())
+                    gui.newMessage(message);
+            });
         }).match(ConnectionResultMessage.class, msg -> {
-            if(msg.isSuccess()){
+            if (msg.isSuccess()) {
                 SwingUtilities.invokeLater(gui::connected);
-            }else{
-                SwingUtilities.invokeLater( () -> gui.connectionError(msg.getError()) );
+            } else {
+                SwingUtilities.invokeLater(() -> gui.connectionError(msg.getError()));
             }
         }).build();
     }

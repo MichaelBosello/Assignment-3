@@ -27,10 +27,13 @@ public class NetworkUtility {
     public static int findNextAviablePort(String ip, int port){
         boolean portFound = false;
         while(!portFound) {
-            try (Socket clientSocket = new Socket(ip, port)) {
-                portFound = true;
-            } catch (IOException e) {
+            try {
+                Socket clientSocket = new Socket(ip, port);
+                clientSocket.close();
+                System.out.println("Soket " + port + " already in use, try next one");
                 port++;
+            } catch (IOException e) {
+                portFound = true;
             }
         }
         return port;

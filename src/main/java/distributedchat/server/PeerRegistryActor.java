@@ -12,9 +12,14 @@ public class PeerRegistryActor extends AbstractActor {
 
     private final Set<ActorRef> peer = new HashSet<>();
 
+    public PeerRegistryActor() {
+        System.out.println("Server akka id " + getSelf());
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(PeerRequestMessage.class, msg -> {
+            System.out.println("Received request");
             getSender().tell(new ServerPeerMessage(new HashSet<>(peer)), getSelf());
             peer.add(getSender());
         }).build();

@@ -2,7 +2,7 @@ package distributedchat.server;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import distributedchat.server.messages.PeerListMessage;
+import distributedchat.server.messages.ServerPeerMessage;
 import distributedchat.server.messages.PeerRequestMessage;
 
 import java.util.HashSet;
@@ -15,7 +15,7 @@ public class PeerRegistryActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(PeerRequestMessage.class, msg -> {
-            getSender().tell(new PeerListMessage(new HashSet<>(peer)), getSelf());
+            getSender().tell(new ServerPeerMessage(new HashSet<>(peer)), getSelf());
             peer.add(getSender());
         }).build();
     }

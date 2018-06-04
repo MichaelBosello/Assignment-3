@@ -2,11 +2,11 @@ package distributedchat.client.messages.fromtogui;
 
 import java.io.Serializable;
 
-public class JoinRequestMessage implements Serializable {
+public class ConnectRequestMessage implements Serializable {
 
     private final String host;
 
-    public JoinRequestMessage(String host) {
+    public ConnectRequestMessage(String host) {
         this.host = host;
     }
 

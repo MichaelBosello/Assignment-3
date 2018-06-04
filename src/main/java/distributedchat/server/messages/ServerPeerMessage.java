@@ -5,11 +5,11 @@ import akka.actor.ActorRef;
 import java.io.Serializable;
 import java.util.Set;
 
-public class PeerListMessage implements Serializable {
+public class ServerPeerMessage implements Serializable {
 
     private final Set<ActorRef> peer;
 
-    public PeerListMessage(Set<ActorRef> peer) {
+    public ServerPeerMessage(Set<ActorRef> peer) {
         this.peer = peer;
     }
 

@@ -2,11 +2,17 @@ package distributedchat.client;
 
 import akka.actor.*;
 import distributedchat.client.chatgui.ChatGUIActor;
+import distributedchat.client.messages.chatprotocol.AskToJoin;
+import distributedchat.client.messages.chatprotocol.MessageReceived;
+import distributedchat.client.messages.chatprotocol.NextMessage;
+import distributedchat.client.messages.chatprotocol.PeerList;
 import distributedchat.client.messages.chatprotocol.causalmutualexclusion.RequestCS;
 import distributedchat.client.messages.chatprotocol.causalmutualexclusion.Token;
-import distributedchat.client.messages.fromtogui.JoinRequestMessage;
-import distributedchat.client.messages.fromtogui.JoinResultMessage;
-import distributedchat.server.messages.PeerListMessage;
+import distributedchat.client.messages.fromtogui.ConnectRequestMessage;
+import distributedchat.client.messages.fromtogui.ConnectionResultMessage;
+import distributedchat.client.messages.fromtogui.LeaveRequestMessage;
+import distributedchat.client.messages.fromtogui.SendMessage;
+import distributedchat.server.messages.ServerPeerMessage;
 import distributedchat.server.messages.PeerRequestMessage;
 import javafx.util.Pair;
 import scala.concurrent.duration.Duration;
@@ -14,10 +20,12 @@ import scala.concurrent.duration.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public class ChatActor extends AbstractActor {
+public class ChatActor extends AbstractActorWithStash {
 
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
+    private Set<ActorRef> allPeer = new HashSet<>();
+    private Set<ActorRef> findPeer = new HashSet<>();
 
     private Map<ActorRef, Integer> lastCSRequest = new HashMap<>();//Ri
     private Map<ActorRef, Integer> lastCSExecution = new HashMap<>();//T
@@ -26,18 +34,22 @@ public class ChatActor extends AbstractActor {
 
     public ChatActor() {
         gui = getContext().actorOf(Props.create(ChatGUIActor.class));
+        lastCSRequest.put(getSelf(), 0);
+        lastCSExecution.put(getSelf(), 0);
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(JoinRequestMessage.class, this::join)
+                .match(ConnectRequestMessage.class, this::serverConnection)
                 .match(ReceiveTimeout.class, this::connectionFailed)
-                .match(PeerListMessage.class, this::connectionSuccess)
+                .match(ServerPeerMessage.class, this::connectionSuccess)
+                .match(PeerList.class, this::joinResponse)
+                .matchAny( o -> stash())
                 .build();
     }
 
-    private void join(JoinRequestMessage msg){
+    private void serverConnection(ConnectRequestMessage msg){
         lastContactedRegistry =
                 getContext().actorSelection("akka.tcp://chat@" + msg.getHost() + "/registry");
         lastContactedRegistry.tell(new PeerRequestMessage(), getSelf());
@@ -47,16 +59,45 @@ public class ChatActor extends AbstractActor {
     private void connectionFailed(ReceiveTimeout msg){
         getContext().setReceiveTimeout(Duration.Undefined());
         lastContactedRegistry = null;
-        gui.tell(new JoinResultMessage(false, "Timeout"), getSelf());
+        gui.tell(new ConnectionResultMessage(false, "Timeout"), getSelf());
     }
 
-    private void connectionSuccess(PeerListMessage msg){
+    private void connectionSuccess(ServerPeerMessage msg){
         if(getSender().equals(lastContactedRegistry)){
             getContext().setReceiveTimeout(Duration.Undefined());
-
-            gui.tell(new JoinResultMessage(true, ""), getSelf());
+            for(ActorRef peer : msg.getPeer()){
+                peer.tell(new AskToJoin(), getSelf());
+            }
         }
     }
+
+    private void joinResponse(PeerList msg){
+        allPeer.addAll(msg.getPeer());
+        findPeer.add(getSender());
+        if(allPeer.equals(findPeer)) {
+            getContext().become(
+                    receiveBuilder()
+                            .match(AskToJoin.class, this::addPeer)
+                            .match(SendMessage.class, this::)
+                            .match(LeaveRequestMessage.class, this::)
+                            .match(NextMessage.class, this::)
+                            .match(MessageReceived.class, this::)
+                            .match(RequestCS.class, this::receiveRequest)
+                            .match(Token.class, this::receiveToken)
+                            .build()
+            );
+            gui.tell(new ConnectionResultMessage(true, ""), getSelf());
+        }
+    }
+
+    private void addPeer(AskToJoin msg){
+        lastCSRequest.put(getSender(), 0);
+        lastCSExecution.put(getSender(), 0);
+        getSender().tell(new PeerList(allPeer), getSelf());
+        allPeer.add(getSender());
+        findPeer.add(getSender());
+    }
+
 
 
     private List<Pair<ActorRef, Integer>> removeObsoleteRequest(List<Pair<ActorRef, Integer>> q){
@@ -73,7 +114,7 @@ public class ChatActor extends AbstractActor {
         if(!holdToken){
             lastCSRequest.replace(getSelf(), lastCSRequest.get(getSelf()) + 1);
             waitingQueue.add(new Pair<>(getSelf(), lastCSRequest.get(getSelf())));
-            for(ActorRef peer : lastCSRequest.keySet()){
+            for(ActorRef peer : allPeer){
                 peer.tell(new RequestCS(waitingQueue), getSelf());
             }
             waitingQueue = new ArrayList<>();

@@ -2,12 +2,12 @@ package distributedchat.client.messages.fromtogui;
 
 import java.io.Serializable;
 
-public class JoinResultMessage implements Serializable {
+public class ConnectionResultMessage implements Serializable {
 
     private final boolean success;
     private final String error;
 
-    public JoinResultMessage(boolean success, String error) {
+    public ConnectionResultMessage(boolean success, String error) {
         this.success = success;
         this.error = error;
     }

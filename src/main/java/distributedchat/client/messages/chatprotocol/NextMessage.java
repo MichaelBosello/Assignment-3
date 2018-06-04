@@ -1,4 +1,4 @@
-package distributedchat.client.messages.fromtogui;
+package distributedchat.client.messages.chatprotocol;
 
 import java.io.Serializable;
 

@@ -178,11 +178,10 @@ public class ChatActor extends AbstractActorWithStash {
     //chat mutual exclusion protocol
 
     private void sendChatMessage(SendMessage msg){
-        pendingMessage.add(msg.getMessage());
-        if(!csRequestSubmitted){
-            csRequestSubmitted = true;
+        if(!csRequestSubmitted) {
             requestCS();
         }
+        pendingMessage.add(msg.getMessage());
     }
 
     private void visualizeMessage(NextMessages msg){
@@ -193,12 +192,10 @@ public class ChatActor extends AbstractActorWithStash {
     private void chatMessageAck(MessageReceived msg){
         messageAck++;
         if(messageAck == lastCSRequest.size()){
-            messageAck = 0;
             inCS = false;
+            messageAck = 0;
             releaseCS();
-            if(pendingMessage.isEmpty()) {
-                csRequestSubmitted = false;
-            }else{
+            if(!csRequestSubmitted) {
                 requestCS();
             }
         }
@@ -253,7 +250,9 @@ public class ChatActor extends AbstractActorWithStash {
                 peer.tell(new RequestCS(new ArrayList<>(waitingQueue)), getSelf());
             }
             waitingQueue = new ArrayList<>();
-        } else {
+
+            csRequestSubmitted = true;
+        } else if (!inCS) {
             ExecuteCS();
         }
     }
@@ -275,5 +274,6 @@ public class ChatActor extends AbstractActorWithStash {
             peer.tell(new NextMessages(pendingMessage), getSelf());
         }
         pendingMessage = new LinkedList<>();
+        csRequestSubmitted = false;
     }
 }

@@ -23,7 +23,10 @@ public class DChatGUI extends JFrame implements ChatGUI {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                notifyLeave();
+                if (DChatGUI.this.isEnabled()) {
+                    leave();
+                    notifyLeave();
+                }
             }
         });
         this.setLayout(new BorderLayout());
@@ -46,6 +49,7 @@ public class DChatGUI extends JFrame implements ChatGUI {
                 registryHost.setEditable(false);
                 notifyJoin(registryHost.getText());
             }else{
+                leave();
                 notifyLeave();
             }
         });
@@ -104,15 +108,9 @@ public class DChatGUI extends JFrame implements ChatGUI {
         }
     }
 
-    private void notifyLeave(){
-        if(joinButton.isEnabled()) {
-            joinButton.setEnabled(false);
-            sendButton.setEnabled(false);
-            for (final ChatObserver observer : this.guiObserver) {
-                observer.leaveEvent();
-            }
-            JOptionPane.showMessageDialog(null, "Leaving group, please wait", "", JOptionPane.PLAIN_MESSAGE);
-            this.setEnabled(false);
+    private void notifyLeave() {
+        for (final ChatObserver observer : this.guiObserver) {
+            observer.leaveEvent();
         }
     }
 
@@ -120,6 +118,11 @@ public class DChatGUI extends JFrame implements ChatGUI {
         for (final ChatObserver observer : this.guiObserver){
             observer.sendEvent(message);
         }
+    }
+
+    private void leave(){
+        JOptionPane.showMessageDialog(null, "Leaving group, please wait", "", JOptionPane.PLAIN_MESSAGE);
+        this.setEnabled(false);
     }
 
 }

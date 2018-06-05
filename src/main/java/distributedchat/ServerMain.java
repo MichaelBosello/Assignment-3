@@ -14,8 +14,6 @@ import java.io.File;
 
 public class ServerMain {
 
-
-
     public static void main(String[] args) {
 
         String ip = NetworkUtility.getLanOrLocal();

@@ -15,7 +15,6 @@ public class ChatTest {
 
     private final static int N_CLIENT = 3;
 
-
     @Test
     public void chatTest() throws InterruptedException, IOException {
         System.out.println(System.getProperty("java.class.path"));

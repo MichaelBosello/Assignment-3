@@ -14,7 +14,7 @@ import static java.lang.Thread.sleep;
 
 public class TalkerMain{
 
-    private final static int N_MESSAGE = 300;
+    private final static int N_MESSAGE = 1000;
 
     public static void main(String[] args) throws InterruptedException {
         System.out.println("talker process started");
@@ -25,7 +25,7 @@ public class TalkerMain{
                 new ConnectRequestMessage((
                         NetworkUtility.ipPortConcat(
                                 NetworkUtility.getLanOrLocal(), NetworkUtility.CHAT_SERVER_PORT))), null);
-        sleep(10000);
+        sleep(20000);
         for(int i = 0; i < N_MESSAGE; i++) {
             client.tell(new SendMessage("User" + id + ": message" + i), null);
             sleep(20);

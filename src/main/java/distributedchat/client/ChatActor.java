@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ChatActor extends AbstractActorWithStash {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
@@ -210,18 +210,6 @@ public class ChatActor extends AbstractActorWithStash {
         }
     }
 
-
-    private List<SimpleEntry<ActorRef, Integer>> removeObsoleteRequest(List<SimpleEntry<ActorRef, Integer>> q){
-        List<SimpleEntry<ActorRef, Integer>> result = new LinkedList<>(q);
-        for(SimpleEntry<ActorRef, Integer> request : q){
-            if(request.getValue() <= lastCSRequest.get(request.getKey()) ||
-                    request.getValue() <= lastCSExecution.get(request.getKey())){
-                result.remove(request);
-            }
-        }
-        return result;
-    }
-
     private void requestCS() {
         if (!holdToken) {
             lastCSRequest.replace(getSelf(), lastCSRequest.get(getSelf()) + 1);
@@ -243,8 +231,16 @@ public class ChatActor extends AbstractActorWithStash {
             System.out.println("local queue size " + waitingQueue.size());
             System.out.println("request queue size " + req.getWaitingQueue().size());
         }
-        waitingQueue = removeObsoleteRequest(waitingQueue);
-        List<SimpleEntry<ActorRef, Integer>> requestQueue = removeObsoleteRequest(req.getWaitingQueue());
+
+        List<SimpleEntry<ActorRef, Integer>> requestQueue = new LinkedList<>(req.getWaitingQueue());
+
+        for(SimpleEntry<ActorRef, Integer> request : req.getWaitingQueue()){
+            if(waitingQueue.contains(request)){
+                waitingQueue.remove(request);
+                requestQueue.remove(request);
+            }
+        }
+
         waitingQueue.addAll(requestQueue);
         if(DEBUG)
             System.out.println("local queue size after merge" + waitingQueue.size());
@@ -269,7 +265,7 @@ public class ChatActor extends AbstractActorWithStash {
                 lastCSRequest.replace(peer, lastCSExecution.get(peer));
             }
         }
-        waitingQueue = removeObsoleteRequest(waitingQueue);
+
         for(SimpleEntry<ActorRef, Integer> request : token.getWaitingQueue()){
             if(waitingQueue.contains(request)){
                 waitingQueue.remove(request);

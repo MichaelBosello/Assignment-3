@@ -12,6 +12,10 @@ import java.io.File;
 public class ClientMain {
 
     public static void main(String[] args) {
+        deployClientActor();
+    }
+
+    public static ActorRef deployClientActor(){
         String ip = NetworkUtility.getLanOrLocal();
         int port = NetworkUtility.findNextAviablePort(ip, NetworkUtility.CHAT_BASE_PORT);
         System.out.println("Try connection on " + ip + ":" + port);
@@ -20,9 +24,10 @@ public class ClientMain {
                 ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).withFallback(config);
         ActorSystem system = ActorSystem.create("client", portConfig);
         Address addr = new Address("akka.tcp", "client", ip, port);
-        system.actorOf(Props.create(ChatActor.class).withDeploy(
+        ActorRef client = system.actorOf(Props.create(ChatActor.class).withDeploy(
                 new Deploy(new RemoteScope(addr))));
 
         System.out.println("Client on " + ip + ":" + port);
+        return client;
     }
 }

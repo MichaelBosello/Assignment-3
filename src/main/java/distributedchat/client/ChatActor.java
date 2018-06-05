@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ChatActor extends AbstractActorWithStash {
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
@@ -178,8 +178,12 @@ public class ChatActor extends AbstractActorWithStash {
     }
 
     private void sendChatMessage(SendMessage msg){
+        if(DEBUG)
+            System.out.println("want send message");
         pendingMessage.add(msg.getMessage());
         if(!csRequestSubmitted){
+            if(DEBUG)
+                System.out.println("send request");
             requestCS();
             csRequestSubmitted = true;
         }

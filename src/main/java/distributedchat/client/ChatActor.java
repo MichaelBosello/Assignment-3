@@ -19,8 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ChatActor extends AbstractActorWithStash {
 
-    private static final boolean DEBUG = false;
-
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
     private Set<ActorRef> allPeer = new HashSet<>();
@@ -33,7 +31,7 @@ public class ChatActor extends AbstractActorWithStash {
     private boolean inCS = false;
     private boolean csRequestSubmitted = false;
     private List<String> pendingMessage = new LinkedList<>();
-    private int ack = 0;
+    private int messageAck = 0;
     private int leaveAck = 0;
 
     public ChatActor() {
@@ -45,21 +43,37 @@ public class ChatActor extends AbstractActorWithStash {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                //server connection and response
                 .match(ConnectRequestMessage.class, this::serverConnection)
-                .match(ReceiveTimeout.class, this::connectionFailed)
                 .match(ServerPeerMessage.class, this::connectionSuccess)
+                .match(ReceiveTimeout.class, this::connectionFailed)
+                //prepare to became peer
                 .match(PeerList.class, this::joinResponse)
                 .matchAny( o -> stash())
                 .build();
     }
 
+    //server connection and response
+
     private void serverConnection(ConnectRequestMessage msg){
         lastContactedRegistry =
                 getContext().actorSelection("akka.tcp://chat@" + msg.getHost() + "/user/registry");
-        if(DEBUG)
-            System.out.println("akka.tcp://chat@" + msg.getHost() + "/registry");
         lastContactedRegistry.tell(new PeerRequestMessage(), getSelf());
         getContext().setReceiveTimeout(Duration.create(5, TimeUnit.SECONDS));
+    }
+
+    private void connectionSuccess(ServerPeerMessage msg){
+        if(lastContactedRegistry != null){//desiderata: lastContactedRegistry.equals(getSender) ... todo ActorSelection -> ActorRef
+            getContext().setReceiveTimeout(Duration.Undefined());
+            if(msg.getPeer().size() > 0) {
+                for (ActorRef peer : msg.getPeer()) {
+                    peer.tell(new AskToJoin(), getSelf());
+                }
+            }else{
+                holdToken = true;
+                becamePeer();
+            }
+        }
     }
 
     private void connectionFailed(ReceiveTimeout msg){
@@ -68,47 +82,32 @@ public class ChatActor extends AbstractActorWithStash {
         gui.tell(new ConnectionResultMessage(false, "Timeout"), getSelf());
     }
 
-    private void connectionSuccess(ServerPeerMessage msg){
-        if(lastContactedRegistry != null){
-            getContext().setReceiveTimeout(Duration.Undefined());
-            if(msg.getPeer().size() > 0) {
-                if(DEBUG)
-                    System.out.println("peer present on server");
-                for (ActorRef peer : msg.getPeer()) {
-                    if(DEBUG)
-                        System.out.println("request to join at " + peer);
-                    peer.tell(new AskToJoin(), getSelf());
-                }
-            }else{
-                holdToken = true;
-                joined();
-            }
-        }
-    }
+    //prepare to became peer
 
     private void joinResponse(PeerList msg){
         allPeer.addAll(msg.getPeer());
         findPeer.add(getSender());
         lastCSRequest.put(getSender(), 0);
         lastCSExecution.put(getSender(), 0);
-        if(DEBUG)
-            System.out.println("response from peer to join");
         if(allPeer.size() == findPeer.size()) {
-            joined();
+            becamePeer();
             unstashAll();
         }
     }
 
-    private void joined(){
+    private void becamePeer(){
         getContext().become(
                 receiveBuilder()
+                        //accept peer
                         .match(AskToJoin.class, this::addPeer)
-                        .match(SendMessage.class, this::sendChatMessage)
+                        //leave protocol
                         .match(LeaveRequestMessage.class, this::leaveGroup)
                         .match(Leave.class, this::removePeer)
-                        .match(LeaveReceived.class, this::quit)
+                        .match(LeaveReceived.class, this::leaveAck)
+                        //chat mutual exclusion protocol
+                        .match(SendMessage.class, this::sendChatMessage)
                         .match(NextMessages.class, this::visualizeMessage)
-                        .match(MessageReceived.class, this::ackReceived)
+                        .match(MessageReceived.class, this::chatMessageAck)
                         .match(RequestCS.class, this::receiveRequest)
                         .match(Token.class, this::receiveToken)
                         .build()
@@ -116,9 +115,9 @@ public class ChatActor extends AbstractActorWithStash {
         gui.tell(new ConnectionResultMessage(true, ""), getSelf());
     }
 
+    //accept peer
+
     private void addPeer(AskToJoin msg){
-        if(DEBUG)
-            System.out.println("new peer ask to join");
         getSender().tell(new PeerList(new HashSet<>(lastCSRequest.keySet())), getSelf());
         lastCSRequest.put(getSender(), 0);
         lastCSExecution.put(getSender(), 0);
@@ -126,9 +125,16 @@ public class ChatActor extends AbstractActorWithStash {
         findPeer.add(getSender());
     }
 
+    //leave protocol
+
     private void leaveGroup(LeaveRequestMessage msg){
-        for(ActorRef peer : allPeer){
+        for(ActorRef peer : findPeer){
             peer.tell(new Leave(), getSelf());
+        }
+        lastContactedRegistry.tell(new Leave(), getSelf());
+
+        if(findPeer.size() == 0){
+            System.exit(0);
         }
     }
 
@@ -137,55 +143,45 @@ public class ChatActor extends AbstractActorWithStash {
         findPeer.remove(getSender());
         lastCSRequest.remove(getSender());
         lastCSExecution.remove(getSender());
-        for(SimpleEntry<ActorRef, Integer> request : waitingQueue){
+        List<SimpleEntry<ActorRef, Integer>> tmp = new ArrayList<>(waitingQueue);
+        for(SimpleEntry<ActorRef, Integer> request : tmp){
             if(request.getKey().equals(getSender())){
                 waitingQueue.remove(request);
             }
         }
         getSender().tell(new LeaveReceived(), getSelf());
-        if(inCS && ack == allPeer.size()){
-            releaseCS();
-            if(pendingMessage.isEmpty()) {
-                csRequestSubmitted = false;
-            }else{
-                requestCS();
-            }
-        }
     }
 
-    private void quit(LeaveReceived msg){
+    private void leaveAck(LeaveReceived msg){
         leaveAck++;
-        if(leaveAck == allPeer.size()){
+        if(leaveAck == findPeer.size()){
             if(holdToken){
                 if(waitingQueue.size() > 0) {
                     ActorRef next = waitingQueue.get(0).getKey();
                     waitingQueue.remove(0);
-
                     lastCSExecution.remove(getSelf());
-                    for(SimpleEntry<ActorRef, Integer> request : waitingQueue){
+                    List<SimpleEntry<ActorRef, Integer>> tmp = new ArrayList<>(waitingQueue);
+                    for(SimpleEntry<ActorRef, Integer> request : tmp){
                         if(request.getKey().equals(getSelf())){
                             waitingQueue.remove(request);
                         }
                     }
-
-                    next.tell(new Token(new LinkedList<>(waitingQueue), new HashMap<>(lastCSExecution)), getSelf());
+                    next.tell(new Token(new ArrayList<>(waitingQueue), new HashMap<>(lastCSExecution)), getSelf());
                 } else {
-                    allPeer.iterator().next().tell(new Token(new LinkedList<>(waitingQueue), new HashMap<>(lastCSExecution)), getSelf());
+                    findPeer.iterator().next().tell(new Token(new ArrayList<>(waitingQueue), new HashMap<>(lastCSExecution)), getSelf());
                 }
             }
             System.exit(0);
         }
     }
 
+    //chat mutual exclusion protocol
+
     private void sendChatMessage(SendMessage msg){
-        if(DEBUG)
-            System.out.println("want send message");
         pendingMessage.add(msg.getMessage());
         if(!csRequestSubmitted){
-            if(DEBUG)
-                System.out.println("send request");
-            requestCS();
             csRequestSubmitted = true;
+            requestCS();
         }
     }
 
@@ -194,12 +190,10 @@ public class ChatActor extends AbstractActorWithStash {
         getSender().tell(new MessageReceived(), getSelf());
     }
 
-    private void ackReceived(MessageReceived msg){
-        ack++;
-        if(ack == lastCSRequest.size()){
-            if(DEBUG)
-                System.out.println("all ack received");
-            ack = 0;
+    private void chatMessageAck(MessageReceived msg){
+        messageAck++;
+        if(messageAck == lastCSRequest.size()){
+            messageAck = 0;
             inCS = false;
             releaseCS();
             if(pendingMessage.isEmpty()) {
@@ -210,40 +204,16 @@ public class ChatActor extends AbstractActorWithStash {
         }
     }
 
-    private void requestCS() {
-        if (!holdToken) {
-            lastCSRequest.replace(getSelf(), lastCSRequest.get(getSelf()) + 1);
-            waitingQueue.add(new SimpleEntry<>(getSelf(), lastCSRequest.get(getSelf())));
-            for (ActorRef peer : lastCSRequest.keySet()) {
-                if(DEBUG)
-                    System.out.println("request cs to " + peer);
-                peer.tell(new RequestCS(new LinkedList<>(waitingQueue)), getSelf());
-            }
-            waitingQueue = new ArrayList<>();
-        } else {
-            sendPendingMessageCS();
-        }
-    }
-
     private void receiveRequest(RequestCS req){
-        if(DEBUG) {
-            System.out.println("request cs from " + getSender());
-            System.out.println("local queue size " + waitingQueue.size());
-            System.out.println("request queue size " + req.getWaitingQueue().size());
-        }
-
-        List<SimpleEntry<ActorRef, Integer>> requestQueue = new LinkedList<>(req.getWaitingQueue());
-
+        List<SimpleEntry<ActorRef, Integer>> requestQueue = new ArrayList<>(req.getWaitingQueue());
         for(SimpleEntry<ActorRef, Integer> request : req.getWaitingQueue()){
             if(waitingQueue.contains(request)){
                 waitingQueue.remove(request);
                 requestQueue.remove(request);
             }
         }
-
         waitingQueue.addAll(requestQueue);
-        if(DEBUG)
-            System.out.println("local queue size after merge" + waitingQueue.size());
+
         for(SimpleEntry<ActorRef, Integer> request : waitingQueue){
             if(lastCSRequest.get(request.getKey()) < request.getValue()){
                 lastCSRequest.replace(request.getKey(), request.getValue());
@@ -272,16 +242,22 @@ public class ChatActor extends AbstractActorWithStash {
             }
         }
         waitingQueue.addAll(token.getWaitingQueue());
-        sendPendingMessageCS();
+        ExecuteCS();
     }
 
-    private void sendPendingMessageCS(){
-        for(ActorRef peer : lastCSRequest.keySet()){
-            peer.tell(new NextMessages(pendingMessage), getSelf());
+    private void requestCS() {
+        if (!holdToken) {
+            lastCSRequest.replace(getSelf(), lastCSRequest.get(getSelf()) + 1);
+            waitingQueue.add(new SimpleEntry<>(getSelf(), lastCSRequest.get(getSelf())));
+            for (ActorRef peer : lastCSRequest.keySet()) {
+                peer.tell(new RequestCS(new ArrayList<>(waitingQueue)), getSelf());
+            }
+            waitingQueue = new ArrayList<>();
+        } else {
+            ExecuteCS();
         }
-        pendingMessage = new LinkedList<>();
-        inCS = true;
     }
+
     private void releaseCS(){
         lastCSExecution.replace(getSelf(), lastCSRequest.get(getSelf()));
         if(waitingQueue.size() > 0) {
@@ -291,5 +267,13 @@ public class ChatActor extends AbstractActorWithStash {
             next.tell(new Token(new ArrayList<>(waitingQueue), new HashMap<>(lastCSExecution)), getSelf());
             waitingQueue = new ArrayList<>();
         }
+    }
+
+    private void ExecuteCS(){
+        inCS = true;
+        for(ActorRef peer : lastCSRequest.keySet()){
+            peer.tell(new NextMessages(pendingMessage), getSelf());
+        }
+        pendingMessage = new LinkedList<>();
     }
 }

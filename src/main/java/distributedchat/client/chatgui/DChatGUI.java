@@ -24,8 +24,8 @@ public class DChatGUI extends JFrame implements ChatGUI {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 if (DChatGUI.this.isEnabled()) {
-                    leave();
                     notifyLeave();
+                    leave();
                 }
             }
         });
@@ -49,8 +49,8 @@ public class DChatGUI extends JFrame implements ChatGUI {
                 registryHost.setEditable(false);
                 notifyJoin(registryHost.getText());
             }else{
-                leave();
                 notifyLeave();
+                leave();
             }
         });
         connectionPanel.add(joinButton);

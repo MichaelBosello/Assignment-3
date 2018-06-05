@@ -7,7 +7,7 @@ import java.awt.*;
 import java.util.HashSet;
 import java.util.Set;
 
-public class DChatGUI extends JFrame implements ChatGUI{
+public class DChatGUI extends JFrame implements ChatGUI {
 
     private final Set<ChatObserver> guiObserver = new HashSet<>();
     private final JTextArea chat;
@@ -65,6 +65,8 @@ public class DChatGUI extends JFrame implements ChatGUI{
         messagePanel.add(sendButton);
         this.getContentPane().add(messagePanel,BorderLayout.PAGE_END);
 
+        this.getRootPane().setDefaultButton(sendButton);
+
         this.setSize(1000, 1000);
         this.setLocationRelativeTo(null);
         this.setVisible(true);
@@ -77,6 +79,7 @@ public class DChatGUI extends JFrame implements ChatGUI{
 
     @Override
     public void connected() {
+        joined = true;
         joinButton.setText("Leave");
         joinButton.setEnabled(true);
         sendButton.setEnabled(true);
@@ -102,12 +105,15 @@ public class DChatGUI extends JFrame implements ChatGUI{
     }
 
     private void notifyLeave(){
-        joinButton.setEnabled(false);
-        sendButton.setEnabled(false);
-        for (final ChatObserver observer : this.guiObserver){
-            observer.leaveEvent();
+        if(joinButton.isEnabled()) {
+            joinButton.setEnabled(false);
+            sendButton.setEnabled(false);
+            for (final ChatObserver observer : this.guiObserver) {
+                observer.leaveEvent();
+            }
+            JOptionPane.showMessageDialog(null, "Leaving group, please wait", "", JOptionPane.PLAIN_MESSAGE);
+            this.setEnabled(false);
         }
-        JOptionPane.showMessageDialog(null, "", "Leaving group", JOptionPane.PLAIN_MESSAGE);
     }
 
     private void notifySend(String message){

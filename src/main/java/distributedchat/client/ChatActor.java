@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 public class ChatActor extends AbstractActorWithStash {
 
+    private static final boolean DEBUG = false;
+
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
     private Set<ActorRef> allPeer = new HashSet<>();
@@ -54,7 +56,8 @@ public class ChatActor extends AbstractActorWithStash {
     private void serverConnection(ConnectRequestMessage msg){
         lastContactedRegistry =
                 getContext().actorSelection("akka.tcp://chat@" + msg.getHost() + "/user/registry");
-        System.out.println("akka.tcp://chat@" + msg.getHost() + "/registry");
+        if(DEBUG)
+            System.out.println("akka.tcp://chat@" + msg.getHost() + "/registry");
         lastContactedRegistry.tell(new PeerRequestMessage(), getSelf());
         getContext().setReceiveTimeout(Duration.create(5, TimeUnit.SECONDS));
     }
@@ -69,9 +72,11 @@ public class ChatActor extends AbstractActorWithStash {
         if(lastContactedRegistry != null){
             getContext().setReceiveTimeout(Duration.Undefined());
             if(msg.getPeer().size() > 0) {
-                System.out.println("peer present on server");
+                if(DEBUG)
+                    System.out.println("peer present on server");
                 for (ActorRef peer : msg.getPeer()) {
-                    System.out.println("request to join at " + peer);
+                    if(DEBUG)
+                        System.out.println("request to join at " + peer);
                     peer.tell(new AskToJoin(), getSelf());
                 }
             }else{
@@ -84,7 +89,10 @@ public class ChatActor extends AbstractActorWithStash {
     private void joinResponse(PeerList msg){
         allPeer.addAll(msg.getPeer());
         findPeer.add(getSender());
-        System.out.println("response from peer to join");
+        lastCSRequest.put(getSender(), 0);
+        lastCSExecution.put(getSender(), 0);
+        if(DEBUG)
+            System.out.println("response from peer to join");
         if(allPeer.size() == findPeer.size()) {
             joined();
             unstashAll();
@@ -109,7 +117,8 @@ public class ChatActor extends AbstractActorWithStash {
     }
 
     private void addPeer(AskToJoin msg){
-        System.out.println("new peer ask to join");
+        if(DEBUG)
+            System.out.println("new peer ask to join");
         getSender().tell(new PeerList(new HashSet<>(lastCSRequest.keySet())), getSelf());
         lastCSRequest.put(getSender(), 0);
         lastCSExecution.put(getSender(), 0);
@@ -184,7 +193,8 @@ public class ChatActor extends AbstractActorWithStash {
     private void ackReceived(MessageReceived msg){
         ack++;
         if(ack == lastCSRequest.size()){
-            System.out.println("all ack received");
+            if(DEBUG)
+                System.out.println("all ack received");
             ack = 0;
             inCS = false;
             releaseCS();
@@ -198,13 +208,14 @@ public class ChatActor extends AbstractActorWithStash {
 
 
     private List<SimpleEntry<ActorRef, Integer>> removeObsoleteRequest(List<SimpleEntry<ActorRef, Integer>> q){
+        List<SimpleEntry<ActorRef, Integer>> result = new LinkedList<>(q);
         for(SimpleEntry<ActorRef, Integer> request : q){
             if(request.getValue() <= lastCSRequest.get(request.getKey()) ||
                     request.getValue() <= lastCSExecution.get(request.getKey())){
-                q.remove(request);
+                result.remove(request);
             }
         }
-        return q;
+        return result;
     }
 
     private void requestCS() {
@@ -212,6 +223,8 @@ public class ChatActor extends AbstractActorWithStash {
             lastCSRequest.replace(getSelf(), lastCSRequest.get(getSelf()) + 1);
             waitingQueue.add(new SimpleEntry<>(getSelf(), lastCSRequest.get(getSelf())));
             for (ActorRef peer : lastCSRequest.keySet()) {
+                if(DEBUG)
+                    System.out.println("request cs to " + peer);
                 peer.tell(new RequestCS(new LinkedList<>(waitingQueue)), getSelf());
             }
             waitingQueue = new ArrayList<>();
@@ -221,9 +234,16 @@ public class ChatActor extends AbstractActorWithStash {
     }
 
     private void receiveRequest(RequestCS req){
-        removeObsoleteRequest(waitingQueue);
-        removeObsoleteRequest(req.getWaitingQueue());
-        waitingQueue.addAll(req.getWaitingQueue());
+        if(DEBUG) {
+            System.out.println("request cs from " + getSender());
+            System.out.println("local queue size " + waitingQueue.size());
+            System.out.println("request queue size " + req.getWaitingQueue().size());
+        }
+        waitingQueue = removeObsoleteRequest(waitingQueue);
+        List<SimpleEntry<ActorRef, Integer>> requestQueue = removeObsoleteRequest(req.getWaitingQueue());
+        waitingQueue.addAll(requestQueue);
+        if(DEBUG)
+            System.out.println("local queue size after merge" + waitingQueue.size());
         for(SimpleEntry<ActorRef, Integer> request : waitingQueue){
             if(lastCSRequest.get(request.getKey()) < request.getValue()){
                 lastCSRequest.replace(request.getKey(), request.getValue());
@@ -245,7 +265,7 @@ public class ChatActor extends AbstractActorWithStash {
                 lastCSRequest.replace(peer, lastCSExecution.get(peer));
             }
         }
-        removeObsoleteRequest(waitingQueue);
+        waitingQueue = removeObsoleteRequest(waitingQueue);
         for(SimpleEntry<ActorRef, Integer> request : token.getWaitingQueue()){
             if(waitingQueue.contains(request)){
                 waitingQueue.remove(request);

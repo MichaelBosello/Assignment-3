@@ -19,6 +19,10 @@ import java.util.concurrent.TimeUnit;
 
 public class ChatActor extends AbstractActorWithStash {
 
+    private final static String REQUEST_PERSONAL_CS = ":enter-cs";
+    private final static String RELEASE_PERSONAL_CS = ":exit-cs";
+    private final static int PERSONAL_CS_MAX_SECONDS = 10;
+
     private final ActorRef gui;
     private ActorSelection lastContactedRegistry;
     private Set<ActorRef> allPeer = new HashSet<>();
@@ -33,6 +37,8 @@ public class ChatActor extends AbstractActorWithStash {
     private List<String> pendingMessage = new LinkedList<>();
     private int messageAck = 0;
     private int leaveAck = 0;
+    private boolean personalCS = false;
+    private boolean anotherPeerPersonalCS = false;
 
     public ChatActor() {
         gui = getContext().actorOf(Props.create(ChatGUIActor.class));
@@ -110,6 +116,8 @@ public class ChatActor extends AbstractActorWithStash {
                         .match(MessageReceived.class, this::chatMessageAck)
                         .match(RequestCS.class, this::receiveRequest)
                         .match(Token.class, this::receiveToken)
+                        //release personal cs
+                        .match(ReceiveTimeout.class, this::personalCSTimeExceed)
                         .build()
         );
         gui.tell(new ConnectionResultMessage(true, ""), getSelf());
@@ -178,13 +186,32 @@ public class ChatActor extends AbstractActorWithStash {
     //chat mutual exclusion protocol
 
     private void sendChatMessage(SendMessage msg){
-        pendingMessage.add(msg.getMessage());
-        if(!csRequestSubmitted) {
-            requestCS();
+        if(!anotherPeerPersonalCS) {
+            pendingMessage.add(msg.getMessage());
+            if (!csRequestSubmitted) {
+                requestCS();
+            }
         }
     }
 
     private void visualizeMessage(NextMessages msg){
+        if (msg.getMessage().contains(REQUEST_PERSONAL_CS)) {
+            if (getSender().equals(getSelf())) {
+                getContext().setReceiveTimeout(Duration.create(PERSONAL_CS_MAX_SECONDS, TimeUnit.SECONDS));
+                personalCS = true;
+            } else {
+                anotherPeerPersonalCS = true;
+            }
+        }
+        if (msg.getMessage().contains(RELEASE_PERSONAL_CS)) {
+            if (personalCS) {
+                getContext().setReceiveTimeout(Duration.Undefined());
+                personalCS = false;
+            } else {
+                anotherPeerPersonalCS = false;
+            }
+        }
+
         gui.tell(msg, getSelf());
         getSender().tell(new MessageReceived(), getSelf());
     }
@@ -194,7 +221,9 @@ public class ChatActor extends AbstractActorWithStash {
         if(messageAck == lastCSRequest.size()){
             inCS = false;
             messageAck = 0;
-            releaseCS();
+            if(!personalCS) {
+                releaseCS();
+            }
             if(pendingMessage.size() > 0 && !csRequestSubmitted) {
                 requestCS();
             }
@@ -219,7 +248,7 @@ public class ChatActor extends AbstractActorWithStash {
 
         lastCSRequest.replace(getSelf(), Collections.max(lastCSRequest.values()));
 
-        if(holdToken && !inCS){
+        if(holdToken && !inCS && !personalCS){
             releaseCS();
         }
     }
@@ -275,5 +304,10 @@ public class ChatActor extends AbstractActorWithStash {
         }
         pendingMessage = new LinkedList<>();
         csRequestSubmitted = false;
+    }
+
+    //release personal cs
+    private void personalCSTimeExceed(ReceiveTimeout msg){
+        getSelf().tell(new SendMessage(RELEASE_PERSONAL_CS), getSelf());
     }
 }

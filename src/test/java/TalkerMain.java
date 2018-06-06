@@ -27,6 +27,9 @@ public class TalkerMain{
                                 NetworkUtility.getLanOrLocal(), NetworkUtility.CHAT_SERVER_PORT))), null);
         sleep(20000);
         for(int i = 0; i < N_MESSAGE; i++) {
+            if(i == 150){
+                client.tell(new SendMessage(":enter-cs"), null);
+            }
             client.tell(new SendMessage("User" + id + ": message" + i), null);
             sleep(200);
         }

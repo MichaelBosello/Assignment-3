@@ -202,6 +202,8 @@ public class ChatActor extends AbstractActorWithStash {
             } else {
                 anotherPeerPersonalCS = true;
             }
+            waitingQueue = new ArrayList<>();
+            pendingMessage = new LinkedList<>();
         }
         if (msg.getMessage().contains(RELEASE_PERSONAL_CS)) {
             if (personalCS) {

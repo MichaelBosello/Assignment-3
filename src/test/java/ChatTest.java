@@ -13,6 +13,12 @@ import static java.lang.Thread.sleep;
 
 public class ChatTest {
 
+    /**
+     *
+     *  alternatively run ServerMain and some TalkerMain
+     *
+     **/
+
     private final static int N_CLIENT = 3;
 
     @Test

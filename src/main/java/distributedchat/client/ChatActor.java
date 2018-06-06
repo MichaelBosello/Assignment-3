@@ -178,10 +178,10 @@ public class ChatActor extends AbstractActorWithStash {
     //chat mutual exclusion protocol
 
     private void sendChatMessage(SendMessage msg){
+        pendingMessage.add(msg.getMessage());
         if(!csRequestSubmitted) {
             requestCS();
         }
-        pendingMessage.add(msg.getMessage());
     }
 
     private void visualizeMessage(NextMessages msg){
@@ -195,7 +195,7 @@ public class ChatActor extends AbstractActorWithStash {
             inCS = false;
             messageAck = 0;
             releaseCS();
-            if(!csRequestSubmitted) {
+            if(pendingMessage.size() > 0 && !csRequestSubmitted) {
                 requestCS();
             }
         }
